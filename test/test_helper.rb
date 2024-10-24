@@ -2,7 +2,7 @@ require "minitest/autorun"
 require "minitest/reporters"
 require "webmock/minitest"
 require "vcr"
-require "water-gauges"
+require "water_gauges"
 
 Minitest::Reporters.use! Minitest::Reporters::SpecReporter.new
 

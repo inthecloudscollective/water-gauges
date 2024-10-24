@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in water-gauges.gemspec
+# Specify your gem's dependencies in water_gauges.gemspec
 gemspec
 
 gem "rake", "~> 13.0"
