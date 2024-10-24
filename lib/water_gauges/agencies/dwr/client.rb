@@ -4,6 +4,16 @@ module WaterGauges
       class Client < BaseClient
         base_uri WaterGauges.config.base_urls.dwr
 
+        def get_stations
+          response = self.class.get("/telemetrystations/telemetrystation/", {
+            query: {
+              format: 'json',
+            }
+          })
+
+          handle_response(response)
+        end
+
         def get_station(station_id)
           response = self.class.get("/telemetrystations/telemetrystation/", {
             query: {
