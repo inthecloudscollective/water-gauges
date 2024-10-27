@@ -1,29 +1,22 @@
+require_relative 'telemetry'
+
 module WaterGauges
   module Agencies
     module Dwr
       class Client < BaseClient
         base_uri WaterGauges.config.base_urls.dwr
 
-        def get_stations
-          response = self.class.get("/telemetrystations/telemetrystation/", {
-            query: {
-              format: 'json',
-            }
-          })
+        include Telemetry
 
-          handle_response(response)
-        end
+        private
 
-        def get_station(station_id)
-          response = self.class.get("/telemetrystations/telemetrystation/", {
-            query: {
-              format: 'json',
-              abbrev: station_id,
-              parameter: WaterGauges.config.default_parameters.dwr
-            }
-          })
-
-          Parser.parse_station(handle_response(response))
+        # Handle API responses
+        def handle_response(response)
+          if response.success?
+            JSON.parse(response.body)
+          else
+            raise Errors::APIError, "API request failed with status #{response.code}: #{response.message}"
+          end
         end
       end
     end
