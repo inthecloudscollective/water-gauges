@@ -1,3 +1,5 @@
+require 'pry'
+
 module WaterGauges
   module Agencies
     module Dwr

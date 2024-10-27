@@ -7,7 +7,37 @@ module WaterGauges
             return nil unless response["ResultList"]&.first
 
             data = response["ResultList"].first
-            Models::Station.new(
+            build_station(data)
+          end
+
+          def parse_stations(response)
+            return [] unless response["ResultList"]
+
+            response["ResultList"].map { |data| build_station(data) }
+          end
+
+          def parse_readings(response)
+            return [] unless response["ResultList"]
+
+            response["ResultList"].map do |reading|
+              Models::Dwr::Reading.new(
+                timestamp: parse_timestamp(reading["measDateTime"] || reading["measDate"]),
+                value: reading["measValue"].to_f,
+                unit: reading["units"],
+                parameter: reading["parameter"],
+                quality: reading["flagA"],
+                metadata: {
+                  stage: reading["stage"],
+                  flag_b: reading["flagB"]
+                }
+              )
+            end
+          end
+
+          private
+
+          def build_station(data)
+            Models::Dwr::Station.new(
               id: data["abbrev"],
               name: data["stationName"],
               agency: "DWR",
@@ -25,50 +55,6 @@ module WaterGauges
               }
             )
           end
-
-          def parse_stations(response)
-            return [] unless response["ResultList"]
-
-            response["ResultList"].map do |data|
-              Models::Station.new(
-                id: data["abbrev"],
-                name: data["stationName"],
-                agency: "DWR",
-                latitude: data["latitude"],
-                longitude: data["longitude"],
-                parameters: extract_parameters(data),
-                metadata: {
-                  county: data["county"],
-                  division: data["division"],
-                  water_source: data["waterSource"],
-                  usgs_id: data["usgsStationId"],
-                  status: data["stationStatus"],
-                  por_start: data["stationPorStart"],
-                  por_end: data["stationPorEnd"]
-                }
-              )
-            end
-          end
-
-          def parse_readings(response)
-            return [] unless response["ResultList"]
-
-            response["ResultList"].map do |reading|
-              Models::Reading.new(
-                timestamp: parse_timestamp(reading["measDateTime"] || reading["measDate"]),
-                value: reading["measValue"].to_f,
-                unit: reading["units"],
-                parameter: reading["parameter"],
-                quality: reading["flagA"],
-                metadata: {
-                  stage: reading["stage"],
-                  flag_b: reading["flagB"]
-                }
-              )
-            end
-          end
-
-          private
 
           def parse_timestamp(datetime_str)
             Time.parse(datetime_str)
