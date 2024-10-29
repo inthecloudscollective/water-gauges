@@ -12,4 +12,4 @@ VCR.configure do |config|
   config.ignore_localhost = true
 end
 
-WaterGauges.config.user_agent = "WaterGauges Test"
+WaterGauges.config.user_agent = -> { "WaterGauges Test" }
