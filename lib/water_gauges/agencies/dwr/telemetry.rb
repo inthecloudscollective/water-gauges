@@ -3,32 +3,29 @@ require 'pry'
 module WaterGauges
   module Agencies
     module Dwr
+      # Module containing methods to interact with DWR telemetry data
       module Telemetry
-
-        def get_stations
-          response = self.class.get("/telemetrystations/telemetrystation/", {
-            query: {
-              format: 'json',
-            }
-          })
-
-          data = handle_response(response)
-          Parser.parse_stations(data)
-        end
-
-        def get_station(station_id)
-          response = self.class.get("/telemetrystations/telemetrystation/", {
-            query: {
-              format: 'json',
-              abbrev: station_id,
-              parameter: WaterGauges.config.default_parameters.dwr
-            }
-          })
-
-          data = handle_response(response)
-          Parser.parse_station(data)
-        end
-
+        # Fetches telemetry station data based on filters.
+        #
+        # This method allows querying telemetry stations by various attributes,
+        # such as abbreviation, county, division, and more. Results are paginated
+        # and merged into a single array.
+        #
+        # @param [Hash, Array, nil] aoi An area of interest for spatial searches.
+        #   If a hash is provided, it must have keys `:latitude` and `:longitude`.
+        #   If an array is provided, it must contain two elements in the order [latitude, longitude].
+        # @param [Integer, nil] radius Radius in miles for spatial search around `aoi`. Defaults to 20 miles if `aoi` is provided.
+        # @param [String, nil] abbrev Abbreviation of the telemetry station.
+        # @param [String, nil] county County name to filter stations.
+        # @param [Integer, nil] division Water division number to filter stations.
+        # @param [String, nil] gnis_id GNIS ID of the station.
+        # @param [String, nil] usgs_id USGS ID of the station.
+        # @param [Integer, nil] water_district Water district number.
+        # @param [String, nil] wdid WDID of the telemetry station.
+        # @return [Array<Station>] An array of telemetry station objects.
+        # @raise [ArgumentError] if the `aoi` parameter is provided but not in the correct format.
+        # @example Usage
+        #   client.get_telemetry_stations(abbrev: 'PLACHECO', county: 'Denver')
         def get_telemetry_stations(aoi: nil, radius: nil, abbrev: nil, county: nil, division: nil, gnis_id: nil, usgs_id: nil, water_district: nil, wdid: nil)
           query = {
             format: 'json',
@@ -45,10 +42,12 @@ module WaterGauges
           query[:wdid] = wdid if wdid
 
           if aoi
-            # Assuming aoi is a hash with :latitude and :longitude
             if aoi.is_a?(Hash) && aoi[:latitude] && aoi[:longitude]
-              query[:latitude] = aoi[:latitude]
               query[:longitude] = aoi[:longitude]
+              query[:latitude] = aoi[:latitude]
+            elsif aoi.is_a?(Array) && aoi.count == 2
+              query[:longitude] = aoi[0]
+              query[:latitude] = aoi[1]
             else
               raise ArgumentError, "Invalid 'aoi' parameter"
             end
@@ -83,6 +82,21 @@ module WaterGauges
           results
         end
 
+        # Fetches telemetry time series data for a specific station.
+        #
+        # This method retrieves time series data for a station by abbreviation,
+        # within a specified date range and time scale (e.g., daily, hourly).
+        #
+        # @param [String] abbrev Station abbreviation.
+        # @param [String] parameter Telemetry parameter to retrieve. Default is `'DISCHRG'`.
+        # @param [Date, nil] start_date Start date for the data range. Defaults to `nil`, which retrieves from the earliest available date.
+        # @param [Date, nil] end_date End date for the data range. Defaults to `nil`, which retrieves until the latest available date.
+        # @param [String] timescale Time scale for the data, options are `'day'`, `'hour'`, or `'raw'`. Defaults to `'day'`.
+        # @param [Boolean] include_third_party Whether to include third-party data. Defaults to `true`.
+        # @return [Array<Reading>] An array of telemetry readings.
+        # @raise [ArgumentError] if an invalid timescale is provided.
+        # @example Fetch daily discharge data for the PLACHECO station
+        #   client.get_telemetry_ts(abbrev: 'PLACHECO', parameter: 'DISCHRG', start_date: Date.parse('2021-01-01'), end_date: Date.parse('2021-12-31'))
         def get_telemetry_ts(abbrev:, parameter: 'DISCHRG', start_date: nil, end_date: nil, timescale: 'day', include_third_party: true)
           timescales = ['day', 'hour', 'raw']
           unless timescales.include?(timescale)
